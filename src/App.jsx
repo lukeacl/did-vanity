@@ -159,6 +159,7 @@ function App() {
                 </>
               ) : (
                 <>
+                  <h2 className="mt-4">Found One!</h2>
                   <p className="text-lg">{candidate.did}</p>
                   <div className="mt-4">
                     <button
