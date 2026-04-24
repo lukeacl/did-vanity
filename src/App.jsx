@@ -113,6 +113,8 @@ function App() {
                       <h2 className="mt-4">Search</h2>
                       <div className="mt-4">
                         <input
+                          autoCapitalize="off"
+                          autoCorrect="off"
                           className="mr-2"
                           placeholder="Pattern"
                           type="text"
