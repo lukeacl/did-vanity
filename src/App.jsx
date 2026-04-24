@@ -108,7 +108,7 @@ function App() {
                       <p className="mt-1 font-thin">
                         Some of us are mad enough to want to generate a did:plc
                         that contains a specific sequence of characters. For
-                        what reason? Unknown. But this tool will help you out!
+                        what reason? Unknown, but this tool will help you out!
                       </p>
                       <h2 className="mt-4">Search</h2>
                       <div className="mt-4">
