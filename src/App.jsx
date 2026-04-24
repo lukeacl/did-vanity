@@ -1,9 +1,4 @@
-import { Secp256k1PrivateKeyExportable } from "@atcute/crypto";
-import {
-  signOperation,
-  deriveDidFromGenesisOp,
-  PlcClient,
-} from "@atcute/did-plc";
+import { PlcClient } from "@atcute/did-plc";
 import { useState, useEffect } from "react";
 
 import searching from "./assets/searching.gif";
@@ -18,56 +13,30 @@ function App() {
   const [created, setIsCreated] = useState(null);
 
   useEffect(() => {
-    let intervalId;
+    let workers = [];
     if (isSearching) {
-      intervalId = setInterval(async () => {
-        const pattern = new RegExp(patternString, "i");
-
-        const signingKey = await Secp256k1PrivateKeyExportable.createKeypair();
-        const recoveryKey = await Secp256k1PrivateKeyExportable.createKeypair();
-        const rotationKey = await Secp256k1PrivateKeyExportable.createKeypair();
-
-        const op = {
-          type: "plc_operation",
-          prev: null,
-          alsoKnownAs: ["at://handle.pds.private"],
-          rotationKeys: [
-            await recoveryKey.exportPublicKey("did"),
-            await rotationKey.exportPublicKey("did"),
-          ],
-          verificationMethods: {
-            atproto: await signingKey.exportPublicKey("did"),
-          },
-          services: {
-            atproto_pds: {
-              type: "AtprotoPersonalDataServer",
-              endpoint: "https://pds.private",
-            },
-          },
+      for (let i = 0; i < navigator.hardwareConcurrency; i++) {
+        const worker = new Worker(new URL("./worker.js", import.meta.url), {
+          type: "module",
+        });
+        worker.onmessage = function (e) {
+          const pattern = new RegExp(patternString, "i");
+          if (pattern.test(e.data.did.substring(8))) {
+            setCandidate(e.data);
+            setIsSearching(false);
+          }
         };
-
-        const signedOp = await signOperation(op, rotationKey);
-        const did = await deriveDidFromGenesisOp(signedOp);
-
-        if (pattern.test(did.substring(8))) {
-          setCandidate({
-            pattern,
-            did,
-            op,
-            signedOp,
-            recoveryKey: {
-              did: await recoveryKey.exportPublicKey("did"),
-              key: await recoveryKey.exportPrivateKey("multikey"),
-            },
-            date: new Date(),
-          });
-
-          setIsSearching(false);
-        }
-      }, 0);
+        worker.postMessage(i);
+        workers.push(worker);
+      }
     }
 
-    return () => clearInterval(intervalId);
+    return () => {
+      for (const worker of workers) {
+        worker.terminate();
+      }
+      workers = [];
+    };
   }, [isSearching, patternString]);
 
   const onSearch = async () => {
@@ -133,14 +102,12 @@ function App() {
                       </p>
                       <h2 className="mt-4">Important Information</h2>
                       <p className="mt-1 font-thin">
-                        Okay so now also hold up just one more moment, important
-                        note, this is a single threaded operation. It's going to
-                        take a while if your search pattern is specific. It's
-                        going to be mega slow if you're really specific. To see
-                        what it looks like quickly clear the pattern box and hit
-                        Search. Otherwise, you need to be patient, go get some
-                        coffee, an energy drink, put on some music, just vibe
-                        and wait.
+                        If your search pattern is specific this search is going
+                        to take a while. It's going to be mega slow if you're
+                        really specific. To get a quick preview and test clear
+                        the pattern box and hit Search. Otherwise, you need to
+                        be patient, go get some coffee, an energy drink, put on
+                        some music, just vibe and wait.
                       </p>
                     </>
                   ) : (
